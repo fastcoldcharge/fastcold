@@ -19,7 +19,7 @@ export default function Home() {
             <div className="lg:w-1/2 relative">
               <div className="absolute -top-10 -left-10 w-40 h-40 bg-brand-light/10 rounded-full blur-3xl" />
               <img
-                src="/camion1.jpeg"
+                src="camion1.jpeg"
                 alt="Logística"
                 className="rounded-3xl shadow-2xl relative z-10"
               />
@@ -125,7 +125,7 @@ export default function Home() {
             {["camion.jpeg", "camion1.jpeg", "camion2.jpeg", "camion3.jpeg"].map((img, i) => (
               <div key={i} className="group relative overflow-hidden rounded-2xl h-64 shadow-lg perspective-1000">
                 <img
-                  src={`/${img}`}
+                  src={`${img}`}
                   alt={`Camion ${i}`}
                   className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 scale-110 group-hover:scale-100"
                 />

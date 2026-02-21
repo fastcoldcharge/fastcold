@@ -11,7 +11,7 @@ export default function Hero() {
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-r from-brand-dark via-brand-dark/80 to-transparent z-10" />
         <img
-          src="/camion.jpeg"
+          src="camion.jpeg"
           alt="Camión Refrigerado"
           className="w-full h-full object-cover"
         />
