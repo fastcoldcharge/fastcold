@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-blue: #266BD9;
+  --color-brand-light: #63C0DA;
+  --color-brand-dark: #0f172a;
+}
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: white;
+}
+
+@layer utilities {
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+  .card-3d-hover {
+    transition: transform 0.5s;
+    transform-style: preserve-3d;
+  }
+  .card-3d-hover:hover {
+    transform: rotateY(10deg) rotateX(5deg);
+  }
+}
