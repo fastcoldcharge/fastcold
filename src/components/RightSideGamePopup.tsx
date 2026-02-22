@@ -38,7 +38,7 @@ function clamp01(x: number) {
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }
-function smoothstep(t: number) {
+{
   t = clamp01(t);
   return t * t * (3 - 2 * t);
 }
@@ -260,7 +260,7 @@ export default function RightSideGamePopup() {
 
     const drawRounded = (x: number, y: number, w: number, h: number, r: number) => {
       ctx.beginPath();
-      // @ts-ignore roundRect exists in modern browsers
+      // @ts-expect-error: roundRect existe en navegadores modernos
       ctx.roundRect(x, y, w, h, r);
       ctx.fill();
     };
@@ -507,7 +507,7 @@ export default function RightSideGamePopup() {
       const capped = sp > truckMaxSpeed ? mul(norm(newVel), truckMaxSpeed) : newVel;
 
       // integrate with collision (axis-separated for smooth sliding)
-      let next = { x: tp.x, y: tp.y };
+      const next = { x: tp.x, y: tp.y };
       const stepX = { x: tp.x + capped.x * dt, y: tp.y };
       if (canMoveTo(walls, stepX, truckRadius)) next.x = stepX.x;
       else capped.x = 0;
