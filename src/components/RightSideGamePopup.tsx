@@ -738,8 +738,11 @@ export default function RightSideGamePopup() {
         onClick={() => setOpen(true)}
         style={{
           position: "fixed",
+
+          // ✅ ESQUINA SUPERIOR DERECHA
+          top: isMobile ? 70 : 96,
           right: 16,
-          bottom: isMobile ? 120 : 90,
+
           zIndex: 9999,
           padding: "10px 12px",
           borderRadius: 14,
