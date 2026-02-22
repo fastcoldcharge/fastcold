@@ -173,9 +173,7 @@ function pickEnemyDir(walls: boolean[][], enemyTile: Vec, targetTile: Vec, curre
         best = o.d;
       }
     }
-            // 👇 MUEVE EL BOTÓN
-            right: 90,   // antes 12
-            bottom: 90,  // antes 12
+
   return best;
 }
 
@@ -739,8 +737,8 @@ export default function RightSideGamePopup() {
         onClick={() => setOpen(true)}
         style={{
           position: "fixed",
-          right: 12,
-          bottom: 12,
+          right: 90,
+          bottom: 90,
           zIndex: 9999,
           padding: "10px 12px",
           borderRadius: 14,
