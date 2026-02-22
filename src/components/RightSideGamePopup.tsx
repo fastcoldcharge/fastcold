@@ -4,8 +4,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 type Vec = { x: number; y: number };
 
- {
-  return Math.max(a, Math.min(b, n));
+function manhattan(a: Vec, b: Vec) {
+  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 }
 
 function manhattan(a: Vec, b: Vec) {
