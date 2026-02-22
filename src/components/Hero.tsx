@@ -18,7 +18,7 @@ export default function Hero() {
       <motion.div
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: 'url("/images/camion-carretera.jpg")',
+          backgroundImage: 'url("images/camion-carretera.jpg")',
           filter: 'brightness(0.4)',
           y
         }}

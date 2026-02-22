@@ -4,9 +4,9 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 
 const fleetImages = [
-  "/images/carga-logistica.jpg",
-  "/images/camion-almacen.jpg",
-  "/images/fast-cold-warehouse.jpg",
+  "images/carga-logistica.jpg",
+  "images/camion-almacen.jpg",
+  "images/fast-cold-warehouse.jpg",
 ];
 
 export default function Fleet() {
