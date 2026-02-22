@@ -738,8 +738,8 @@ export default function RightSideGamePopup() {
         onClick={() => setOpen(true)}
         style={{
           position: "fixed",
-          right: 90,
-          bottom: 90,
+          right: 16,
+          bottom: isMobile ? 120 : 90,
           zIndex: 9999,
           padding: "10px 12px",
           borderRadius: 14,
