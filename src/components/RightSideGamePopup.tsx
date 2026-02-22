@@ -8,10 +8,6 @@ function manhattan(a: Vec, b: Vec) {
   return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 }
 
-function manhattan(a: Vec, b: Vec) {
-  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-}
-
 function keyToDir(key: string): Vec | null {
   if (key === "ArrowUp" || key === "w" || key === "W") return { x: 0, y: -1 };
   if (key === "ArrowDown" || key === "s" || key === "S") return { x: 0, y: 1 };
