@@ -4,9 +4,9 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 
 const fleetImages = [
-  "https://images.unsplash.com/photo-1586191582151-f73872dfd183?auto=format&fit=crop&q=80&w=800",
-  "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&q=80&w=800",
-  "https://images.unsplash.com/photo-1591768793355-74d04bb6608f?auto=format&fit=crop&q=80&w=800",
+  "/images/carga-logistica.jpg",
+  "/images/camion-almacen.jpg",
+  "/images/fast-cold-warehouse.jpg",
 ];
 
 export default function Fleet() {
@@ -42,7 +42,7 @@ export default function Fleet() {
           </motion.div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 perspective-1000">
           {fleetImages.map((src, index) => (
             <motion.div
               key={index}
@@ -50,7 +50,7 @@ export default function Fleet() {
               whileInView={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.2 }}
               viewport={{ once: true }}
-              className="group relative h-[400px] overflow-hidden rounded-2xl shadow-xl"
+              className="group relative h-[420px] overflow-hidden rounded-2xl shadow-xl shadow-soft card-3d-hover"
             >
               <Image
                 src={src}

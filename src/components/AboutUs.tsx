@@ -15,7 +15,7 @@ export default function AboutUs() {
           >
             <div className="relative rounded-2xl overflow-hidden shadow-2xl">
               <Image
-                src="https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&q=80&w=800"
+                src="/images/carga-logistica.jpg"
                 alt="Logística de frío"
                 width={800}
                 height={600}
