@@ -257,10 +257,9 @@ export default function RightSideGamePopup() {
 
     const drawRounded = (x: number, y: number, w: number, h: number, r: number) => {
       ctx.beginPath();
-      // @ts-expect-error: roundRect existe en navegadores modernos
       ctx.roundRect(x, y, w, h, r);
       ctx.fill();
-    };
+    }
 
     const draw = () => {
       // Background gradient
