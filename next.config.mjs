@@ -1,13 +1,14 @@
-const repo = "fastcold"; // <-- pon aquí el nombre exacto del repo
-const isProd = process.env.NODE_ENV === "production";
-
 /** @type {import('next').NextConfig} */
+const repo = 'fastcold';
+
 const nextConfig = {
-  output: "export",
+  output: 'export',
   trailingSlash: true,
-  images: { unoptimized: true },
-  basePath: isProd ? `/${repo}` : "",
-  assetPrefix: isProd ? `/${repo}/` : "",
+  basePath: `/${repo}`,
+  assetPrefix: `/${repo}/`,
+  images: {
+    unoptimized: true,
+  },
 };
 
 export default nextConfig;
