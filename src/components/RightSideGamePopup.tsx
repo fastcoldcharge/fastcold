@@ -173,6 +173,7 @@ function pickEnemyDir(walls: boolean[][], enemyTile: Vec, targetTile: Vec, curre
         best = o.d;
       }
     }
+  }
 
   return best;
 }
