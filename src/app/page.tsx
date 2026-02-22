@@ -10,6 +10,17 @@ import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import FloatingSidebar from "@/components/FloatingSidebar";
 import AIAssistant from "@/components/AIAssistant";
+import RightSideGamePopup from "@/components/RightSideGamePopup";
+
+export default function Home() {
+  return (
+    <>
+      <RightSideGamePopup />
+      {/* tu contenido normal */}
+      <main>...</main>
+    </>
+  );
+}
 
 export default function Home() {
   return (
