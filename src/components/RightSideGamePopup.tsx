@@ -79,6 +79,18 @@ function makeWalls(): boolean[][] {
   addRect(6, 6, COLS - 7, 6);
   addRect(6, 14, COLS - 7, 14);
 
+  // ✅ Puertas para que los pingüinos salgan del marco interno
+  w[6][10] = false;   // puerta arriba
+  w[14][10] = false;  // puerta abajo
+  w[10][6] = false;   // puerta izquierda
+  w[10][14] = false;  // puerta derecha
+
+  // (opcional) puertas un poquito más anchas:
+  w[6][9] = false;  w[6][11] = false;
+  w[14][9] = false; w[14][11] = false;
+  w[9][6] = false;  w[11][6] = false;
+  w[9][14] = false; w[11][14] = false;
+
   // Barritas extra
   addRect(8, 2, 12, 2);
   addRect(8, ROWS - 3, 12, ROWS - 3);
@@ -191,17 +203,39 @@ export default function RightSideGamePopup() {
   const iceRef = useRef<boolean[][]>(makeIce(walls));
   const pickupPulseRef = useRef<number>(0);
 
-  // ✅ Cubos grandes laterales (power)
+  // ✅ Cubos grandes (power) — ahora 8 posiciones
   const powerPellets = useMemo(() => {
-    // laterales: izquierda y derecha a media altura
-    const left = { x: 1, y: Math.floor(ROWS / 2) };
-    const right = { x: COLS - 2, y: Math.floor(ROWS / 2) };
+    const pts: Vec[] = [
+      // 3 izquierda
+      { x: 1, y: 3 },
+      { x: 1, y: Math.floor(ROWS / 2) },
+      { x: 1, y: ROWS - 4 },
 
-    // si por algún motivo justo hay pared, los movemos 1 tile
-    const safeLeft = isWall(walls, left) ? { x: 1, y: Math.floor(ROWS / 2) - 1 } : left;
-    const safeRight = isWall(walls, right) ? { x: COLS - 2, y: Math.floor(ROWS / 2) - 1 } : right;
+      // 3 derecha
+      { x: COLS - 2, y: 3 },
+      { x: COLS - 2, y: Math.floor(ROWS / 2) },
+      { x: COLS - 2, y: ROWS - 4 },
 
-    return new Set<string>([mkKey(safeLeft), mkKey(safeRight)]);
+      // 2 arriba/abajo al centro
+      { x: Math.floor(COLS / 2), y: 1 },
+      { x: Math.floor(COLS / 2), y: ROWS - 2 },
+    ];
+
+    // Si alguno cae en pared por tu diseño, lo movemos 1 tile hacia adentro
+    const safe = pts.map((p) => {
+      if (!isWall(walls, p)) return p;
+
+      const moved = { x: Math.max(1, Math.min(COLS - 2, p.x + (p.x <= 1 ? 1 : -1))), y: p.y };
+      if (!isWall(walls, moved)) return moved;
+
+      const moved2 = { x: p.x, y: Math.max(1, Math.min(ROWS - 2, p.y + (p.y <= 1 ? 1 : -1))) };
+      if (!isWall(walls, moved2)) return moved2;
+
+      // último recurso: devolver tal cual (pero normalmente no pasa)
+      return p;
+    });
+
+    return new Set<string>(safe.map(mkKey));
   }, [walls]);
 
   const powerTimerRef = useRef<number>(0);
