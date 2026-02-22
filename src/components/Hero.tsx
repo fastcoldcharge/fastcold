@@ -3,6 +3,7 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { CheckCircle2, ArrowRight, MessageSquare } from "lucide-react";
 import { useRef } from "react";
+import { withBasePath } from "@/lib/paths";
 
 export default function Hero() {
   const ref = useRef(null);
@@ -18,7 +19,7 @@ export default function Hero() {
       <motion.div
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: 'url("/fastcold/images/camion-carretera.jpg")',
+          backgroundImage: `url("${withBasePath('/images/camion-carretera.jpg')}")`,
           filter: 'brightness(0.4)',
           y
         }}

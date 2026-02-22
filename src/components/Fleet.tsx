@@ -2,11 +2,12 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
+import { withBasePath } from "@/lib/paths";
 
 const fleetImages = [
-  "/images/carga-logistica.jpg",
-  "/images/camion-almacen.jpg",
-  "/images/fast-cold-warehouse.jpg",
+  withBasePath("/images/carga-logistica.jpg"),
+  withBasePath("/images/camion-almacen.jpg"),
+  withBasePath("/images/fast-cold-warehouse.jpg"),
 ];
 
 export default function Fleet() {

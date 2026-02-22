@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
+import { withBasePath } from "@/lib/paths";
 
 export default function AboutUs() {
   return (
@@ -15,7 +16,7 @@ export default function AboutUs() {
           >
             <div className="relative rounded-2xl overflow-hidden shadow-2xl">
               <Image
-                src="/images/carga-logistica.jpg"
+                src={withBasePath("/images/carga-logistica.jpg")}
                 alt="Logística de frío"
                 width={800}
                 height={600}
