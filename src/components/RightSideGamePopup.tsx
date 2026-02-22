@@ -173,8 +173,9 @@ function pickEnemyDir(walls: boolean[][], enemyTile: Vec, targetTile: Vec, curre
         best = o.d;
       }
     }
-  }
-
+            // 👇 MUEVE EL BOTÓN
+            right: 90,   // antes 12
+            bottom: 90,  // antes 12
   return best;
 }
 
