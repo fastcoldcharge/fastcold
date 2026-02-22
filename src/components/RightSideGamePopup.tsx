@@ -35,15 +35,14 @@ function mul(v: Vec, k: number): Vec {
 function clamp01(x: number) {
   return Math.max(0, Math.min(1, x));
 }
+
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }
-{
-  t = clamp01(t);
-  return t * t * (3 - 2 * t);
-}
 
 function keyToDir(key: string): Vec | null {
+  ...
+}
   if (key === "ArrowUp" || key === "w" || key === "W") return { x: 0, y: -1 };
   if (key === "ArrowDown" || key === "s" || key === "S") return { x: 0, y: 1 };
   if (key === "ArrowLeft" || key === "a" || key === "A") return { x: -1, y: 0 };
