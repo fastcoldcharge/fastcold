@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type Vec = { x: number; y: number };
 
-function clamp(n: number, a: number, b: number) {
+ {
   return Math.max(a, Math.min(b, n));
 }
 
@@ -161,20 +161,20 @@ export default function RightSideGamePopup() {
 
   const [status, setStatus] = useState<"ready" | "playing" | "gameover">("ready");
 
-  const resetGame = () => {
-    truckRef.current = { x: 1, y: 1 };
-    dirRef.current = { x: 1, y: 0 };
-    nextDirRef.current = { x: 1, y: 0 };
-    iceRef.current = makeIce(walls);
-    enemiesRef.current = [
-      { pos: { x: 10, y: 10 }, dir: { x: 0, y: -1 }, speed: 6, color: "#111827" },
-      { pos: { x: 9, y: 10 }, dir: { x: 0, y: 1 }, speed: 5, color: "#1F2937" },
-      { pos: { x: 11, y: 10 }, dir: { x: 1, y: 0 }, speed: 5, color: "#0F172A" },
-    ];
-    setScore(0);
-    setWon(false);
-    setStatus("ready");
-  };
+  const resetGame = useCallback(() => {
+  truckRef.current = { x: 1, y: 1 };
+  dirRef.current = { x: 1, y: 0 };
+  nextDirRef.current = { x: 1, y: 0 };
+  iceRef.current = makeIce(walls);
+  enemiesRef.current = [
+    { pos: { x: 10, y: 10 }, dir: { x: 0, y: -1 }, speed: 6, color: "#111827" },
+    { pos: { x: 9, y: 10 }, dir: { x: 0, y: 1 }, speed: 5, color: "#1F2937" },
+    { pos: { x: 11, y: 10 }, dir: { x: 1, y: 0 }, speed: 5, color: "#0F172A" },
+  ];
+  setScore(0);
+  setWon(false);
+  setStatus("ready");
+}, [walls]);
 
   // keyboard
   useEffect(() => {
@@ -204,8 +204,7 @@ export default function RightSideGamePopup() {
 
     // fixed update tick (ms)
     let last = performance.now();
-    let acc = 0;
-
+    
     // timers to move enemies / truck in tile steps
     let truckStepTimer = 0;
     const truckStepEvery = 100; // ms per tile step (10 tiles/sec)
@@ -411,7 +410,7 @@ export default function RightSideGamePopup() {
     const loop = (now: number) => {
       const dt = now - last;
       last = now;
-      acc += dt;
+      
 
       // Update
       if (status === "playing" && !won) {
