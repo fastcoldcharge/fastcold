@@ -192,7 +192,57 @@ export default function RightSideGamePopup() {
 
   const [powerLeft, setPowerLeft] = useState(0); // para UI
 
+  // móvil
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const touchStartRef = useRef<Vec | null>(null);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY };
+    if (status === "ready") setStatus("playing");
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const t = e.touches[0];
+    const dx = t.clientX - touchStartRef.current.x;
+    const dy = t.clientY - touchStartRef.current.y;
+
+    const TH = 18;
+    if (Math.abs(dx) < TH && Math.abs(dy) < TH) return;
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+      desiredDirRef.current = dx > 0 ? { x: 1, y: 0 } : { x: -1, y: 0 };
+    } else {
+      desiredDirRef.current = dy > 0 ? { x: 0, y: 1 } : { x: 0, y: -1 };
+    }
+
+    touchStartRef.current = { x: t.clientX, y: t.clientY };
+  };
+
+  const onTouchEnd = () => {
+    touchStartRef.current = null;
+  };
+
+  const padBtnStyle: React.CSSProperties = {
+    borderRadius: 12,
+    border: "1px solid rgba(15,23,42,0.16)",
+    background: "rgba(255,255,255,0.95)",
+    boxShadow: "0 10px 22px rgba(0,0,0,0.10)",
+    fontSize: 16,
+    fontWeight: 800,
+    cursor: "pointer",
+    touchAction: "manipulation",
+  };
 
   // Estado del juego (refs)
   const truckPosRef = useRef<Vec>(tileCenterPx({ x: 1, y: 1 }));
@@ -710,11 +760,12 @@ export default function RightSideGamePopup() {
     <div
       style={{
         position: "fixed",
-        top: 96,
-        right: 16,
         zIndex: 9999,
-        width: 420,
-        maxWidth: "calc(100vw - 32px)",
+        width: isMobile ? "calc(100vw - 24px)" : 420,
+        right: isMobile ? 12 : 16,
+        left: isMobile ? 12 : "auto",
+        bottom: isMobile ? 12 : "auto",
+        top: isMobile ? "auto" : 96,
         borderRadius: 18,
         border: "1px solid rgba(15,23,42,0.14)",
         background: "rgba(255,255,255,0.92)",
@@ -779,14 +830,87 @@ export default function RightSideGamePopup() {
       <div style={{ padding: 12 }}>
         <canvas
           ref={canvasRef}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
           style={{
             width: "100%",
             height: "auto",
             borderRadius: 14,
             border: "1px solid rgba(15,23,42,0.12)",
             display: "block",
+            touchAction: "none",
           }}
         />
+
+        {isMobile && (
+          <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between", gap: 12 }}>
+            <div style={{ fontSize: 12, opacity: 0.9, lineHeight: 1.35 }}>
+              <div><b>Controles:</b> Swipe o botones</div>
+              <div><b>Tip:</b> Mantén presionado para girar rápido</div>
+            </div>
+
+            <div
+              style={{
+                width: 132,
+                height: 132,
+                display: "grid",
+                gridTemplateColumns: "44px 44px 44px",
+                gridTemplateRows: "44px 44px 44px",
+                gap: 0,
+                userSelect: "none",
+              }}
+            >
+              <div />
+              <button
+                type="button"
+                onTouchStart={() => (desiredDirRef.current = { x: 0, y: -1 })}
+                onMouseDown={() => (desiredDirRef.current = { x: 0, y: -1 })}
+                style={padBtnStyle}
+              >
+                ▲
+              </button>
+              <div />
+
+              <button
+                type="button"
+                onTouchStart={() => (desiredDirRef.current = { x: -1, y: 0 })}
+                onMouseDown={() => (desiredDirRef.current = { x: -1, y: 0 })}
+                style={padBtnStyle}
+              >
+                ◀
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (status === "ready") setStatus("playing");
+                }}
+                style={{ ...padBtnStyle, fontWeight: 900 }}
+              >
+                ●
+              </button>
+              <button
+                type="button"
+                onTouchStart={() => (desiredDirRef.current = { x: 1, y: 0 })}
+                onMouseDown={() => (desiredDirRef.current = { x: 1, y: 0 })}
+                style={padBtnStyle}
+              >
+                ▶
+              </button>
+
+              <div />
+              <button
+                type="button"
+                onTouchStart={() => (desiredDirRef.current = { x: 0, y: 1 })}
+                onMouseDown={() => (desiredDirRef.current = { x: 0, y: 1 })}
+                style={padBtnStyle}
+              >
+                ▼
+              </button>
+              <div />
+            </div>
+          </div>
+        )}
 
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, gap: 10 }}>
           <div style={{ fontSize: 12, opacity: 0.9, lineHeight: 1.35 }}>
