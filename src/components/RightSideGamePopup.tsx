@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type Vec = { x: number; y: number };
-type Enemy = { pos: Vec; vel: Vec; speed: number; seed: number };
+type Enemy = { pos: Vec; vel: Vec; speed: number; seed: number; home: Vec };
 
 const TILE = 22;
 const COLS = 21;
@@ -11,6 +11,9 @@ const ROWS = 21;
 
 const TARGET_SCORE = 1000;
 const POINTS_PER_ICE = 2;
+
+const POWER_SECONDS = 8; // tiempo “modo hielo grande”
+const PENGUIN_EAT_POINTS = 60; // puntos por comerse un pingüino en modo power
 
 function manhattan(a: Vec, b: Vec) {
   return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
@@ -35,7 +38,6 @@ function mul(v: Vec, k: number): Vec {
 function clamp01(x: number) {
   return Math.max(0, Math.min(1, x));
 }
-
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }
@@ -51,6 +53,7 @@ function keyToDir(key: string): Vec | null {
 function makeWalls(): boolean[][] {
   const w: boolean[][] = Array.from({ length: ROWS }, () => Array.from({ length: COLS }, () => false));
 
+  // borde
   for (let x = 0; x < COLS; x++) {
     w[0][x] = true;
     w[ROWS - 1][x] = true;
@@ -64,30 +67,26 @@ function makeWalls(): boolean[][] {
     for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) w[y][x] = true;
   };
 
-  // Bloques decorativos
+  // Bloques decorativos (esquinas)
   addRect(2, 2, 4, 4);
   addRect(COLS - 5, 2, COLS - 3, 4);
   addRect(2, ROWS - 5, 4, ROWS - 3);
   addRect(COLS - 5, ROWS - 5, COLS - 3, ROWS - 3);
 
-  // Pasillos
+  // Pasillos (marco interno)
   addRect(6, 6, 6, 14);
   addRect(COLS - 7, 6, COLS - 7, 14);
   addRect(6, 6, COLS - 7, 6);
   addRect(6, 14, COLS - 7, 14);
 
-  // Caja central
-  addRect(9, 9, 11, 11);
-  w[9][10] = false;
-  w[11][10] = false;
-  w[10][9] = false;
-  w[10][11] = false;
-
-  // Barritas
+  // Barritas extra
   addRect(8, 2, 12, 2);
   addRect(8, ROWS - 3, 12, ROWS - 3);
   addRect(2, 8, 2, 12);
   addRect(COLS - 3, 8, COLS - 3, 12);
+
+  // ✅ Importante: quitamos la “caja central” que los encerraba
+  // (antes había un bloque 9..11,9..11)
 
   return w;
 }
@@ -115,7 +114,6 @@ function tileCenterPx(t: Vec): Vec {
 }
 
 function canMoveTo(walls: boolean[][], posPx: Vec, radius: number) {
-  // Chequeo simple por 4 puntos alrededor del círculo del jugador
   const pts: Vec[] = [
     { x: posPx.x + radius, y: posPx.y },
     { x: posPx.x - radius, y: posPx.y },
@@ -129,7 +127,7 @@ function canMoveTo(walls: boolean[][], posPx: Vec, radius: number) {
   return true;
 }
 
-function pickBestEnemyDir(walls: boolean[][], enemyTile: Vec, truckTile: Vec, currentVel: Vec): Vec {
+function pickEnemyDir(walls: boolean[][], enemyTile: Vec, targetTile: Vec, currentVel: Vec, mode: "chase" | "flee"): Vec {
   const options: Vec[] = [
     { x: 1, y: 0 },
     { x: -1, y: 0 },
@@ -137,7 +135,7 @@ function pickBestEnemyDir(walls: boolean[][], enemyTile: Vec, truckTile: Vec, cu
     { x: 0, y: -1 },
   ];
 
-  // Evita reversa si hay otras opciones
+  // Evita reversa si hay alternativas
   const reverse = len(currentVel) > 0.001 ? mul(norm(currentVel), -1) : { x: 0, y: 0 };
 
   const candidates = options
@@ -148,15 +146,28 @@ function pickBestEnemyDir(walls: boolean[][], enemyTile: Vec, truckTile: Vec, cu
   const final = nonReverse.length ? nonReverse : candidates;
 
   let best = final[0]?.d ?? { x: 0, y: 0 };
-  let bestDist = Infinity;
+  let bestScore = mode === "chase" ? Infinity : -Infinity;
+
   for (const o of final) {
-    const dist = manhattan(o.next, truckTile);
-    if (dist < bestDist) {
-      bestDist = dist;
-      best = o.d;
+    const dist = manhattan(o.next, targetTile);
+    if (mode === "chase") {
+      if (dist < bestScore) {
+        bestScore = dist;
+        best = o.d;
+      }
+    } else {
+      if (dist > bestScore) {
+        bestScore = dist;
+        best = o.d;
+      }
     }
   }
+
   return best;
+}
+
+function mkKey(t: Vec) {
+  return `${t.x},${t.y}`;
 }
 
 export default function RightSideGamePopup() {
@@ -167,23 +178,56 @@ export default function RightSideGamePopup() {
   const [won, setWon] = useState(false);
   const [status, setStatus] = useState<"ready" | "playing" | "gameover">("ready");
 
+  const [powerLeft, setPowerLeft] = useState(0); // para UI
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // --- Game state (refs for smooth loop) ---
-  const dprRef = useRef(1);
-
-  const truckPosRef = useRef<Vec>(tileCenterPx({ x: 1, y: 1 })); // pixel position
+  // Estado del juego (refs)
+  const truckPosRef = useRef<Vec>(tileCenterPx({ x: 1, y: 1 }));
   const truckVelRef = useRef<Vec>({ x: 0, y: 0 });
-  const desiredDirRef = useRef<Vec>({ x: 1, y: 0 }); // input direction
-  const lastDirRef = useRef<Vec>({ x: 1, y: 0 }); // for drawing
+  const desiredDirRef = useRef<Vec>({ x: 1, y: 0 });
+  const lastDirRef = useRef<Vec>({ x: 1, y: 0 });
 
   const iceRef = useRef<boolean[][]>(makeIce(walls));
-  const pickupPulseRef = useRef<number>(0); // small animation
+  const pickupPulseRef = useRef<number>(0);
+
+  // ✅ Cubos grandes laterales (power)
+  const powerPellets = useMemo(() => {
+    // laterales: izquierda y derecha a media altura
+    const left = { x: 1, y: Math.floor(ROWS / 2) };
+    const right = { x: COLS - 2, y: Math.floor(ROWS / 2) };
+
+    // si por algún motivo justo hay pared, los movemos 1 tile
+    const safeLeft = isWall(walls, left) ? { x: 1, y: Math.floor(ROWS / 2) - 1 } : left;
+    const safeRight = isWall(walls, right) ? { x: COLS - 2, y: Math.floor(ROWS / 2) - 1 } : right;
+
+    return new Set<string>([mkKey(safeLeft), mkKey(safeRight)]);
+  }, [walls]);
+
+  const powerTimerRef = useRef<number>(0);
 
   const enemiesRef = useRef<Enemy[]>([
-    { pos: tileCenterPx({ x: 10, y: 10 }), vel: { x: 0, y: -1 }, speed: 120, seed: 1 },
-    { pos: tileCenterPx({ x: 9, y: 10 }), vel: { x: 0, y: 1 }, speed: 110, seed: 2 },
-    { pos: tileCenterPx({ x: 11, y: 10 }), vel: { x: 1, y: 0 }, speed: 115, seed: 3 },
+    {
+      pos: tileCenterPx({ x: 10, y: 9 }),
+      vel: { x: 0, y: -1 },
+      speed: 120,
+      seed: 1,
+      home: tileCenterPx({ x: 10, y: 9 }),
+    },
+    {
+      pos: tileCenterPx({ x: 9, y: 10 }),
+      vel: { x: 0, y: 1 },
+      speed: 112,
+      seed: 2,
+      home: tileCenterPx({ x: 9, y: 10 }),
+    },
+    {
+      pos: tileCenterPx({ x: 11, y: 10 }),
+      vel: { x: 1, y: 0 },
+      speed: 116,
+      seed: 3,
+      home: tileCenterPx({ x: 11, y: 10 }),
+    },
   ]);
 
   const resetGame = useCallback(() => {
@@ -195,19 +239,19 @@ export default function RightSideGamePopup() {
     iceRef.current = makeIce(walls);
     pickupPulseRef.current = 0;
 
+    powerTimerRef.current = 0;
+    setPowerLeft(0);
+
     enemiesRef.current = [
-      { pos: tileCenterPx({ x: 10, y: 10 }), vel: { x: 0, y: -1 }, speed: 120, seed: 1 },
-      { pos: tileCenterPx({ x: 9, y: 10 }), vel: { x: 0, y: 1 }, speed: 110, seed: 2 },
-      { pos: tileCenterPx({ x: 11, y: 10 }), vel: { x: 1, y: 0 }, speed: 115, seed: 3 },
+      { pos: tileCenterPx({ x: 10, y: 9 }), vel: { x: 0, y: -1 }, speed: 120, seed: 1, home: tileCenterPx({ x: 10, y: 9 }) },
+      { pos: tileCenterPx({ x: 9, y: 10 }), vel: { x: 0, y: 1 }, speed: 112, seed: 2, home: tileCenterPx({ x: 9, y: 10 }) },
+      { pos: tileCenterPx({ x: 11, y: 10 }), vel: { x: 1, y: 0 }, speed: 116, seed: 3, home: tileCenterPx({ x: 11, y: 10 }) },
     ];
 
     setScore(0);
     setWon(false);
     setStatus("ready");
   }, [walls]);
-
-  // Aparece solo al inicio: ya está open=true. Si quieres delay, aquí:
-  // useEffect(() => { setOpen(false); const t = setTimeout(() => setOpen(true), 1200); return () => clearTimeout(t); }, []);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -232,10 +276,7 @@ export default function RightSideGamePopup() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Setup DPI scaling
     const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-    dprRef.current = dpr;
-
     const cssW = COLS * TILE;
     const cssH = ROWS * TILE;
 
@@ -249,9 +290,9 @@ export default function RightSideGamePopup() {
     let last = performance.now();
 
     const truckRadius = 7.5;
-    const truckMaxSpeed = 160; // px/s
-    const truckAccel = 900; // px/s^2
-    const truckFriction = 12; // higher = more “tight”
+    const truckMaxSpeed = 165;
+    const truckAccel = 920;
+    const truckFriction = 12;
 
     const enemyRadius = 7.2;
 
@@ -259,40 +300,21 @@ export default function RightSideGamePopup() {
       ctx.beginPath();
       ctx.roundRect(x, y, w, h, r);
       ctx.fill();
-    }
+    };
 
     const draw = () => {
-      // Background gradient
+      // background
       const grad = ctx.createLinearGradient(0, 0, cssW, cssH);
       grad.addColorStop(0, "#F8FAFC");
       grad.addColorStop(1, "#EEF2FF");
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, cssW, cssH);
 
-      // Soft grid glow
-      ctx.save();
-      ctx.globalAlpha = 0.08;
-      ctx.strokeStyle = "#0F172A";
-      for (let x = 0; x <= cssW; x += TILE) {
-        ctx.beginPath();
-        ctx.moveTo(x + 0.5, 0);
-        ctx.lineTo(x + 0.5, cssH);
-        ctx.stroke();
-      }
-      for (let y = 0; y <= cssH; y += TILE) {
-        ctx.beginPath();
-        ctx.moveTo(0, y + 0.5);
-        ctx.lineTo(cssW, y + 0.5);
-        ctx.stroke();
-      }
-      ctx.restore();
-
-      // Walls (with soft shadow)
+      // walls
       ctx.save();
       ctx.shadowColor = "rgba(2, 6, 23, 0.22)";
       ctx.shadowBlur = 10;
       ctx.shadowOffsetY = 2;
-
       for (let y = 0; y < ROWS; y++) {
         for (let x = 0; x < COLS; x++) {
           if (walls[y][x]) {
@@ -305,23 +327,27 @@ export default function RightSideGamePopup() {
       }
       ctx.restore();
 
-      // Ice cubes (nicer)
+      // ice (normal + power big)
       const ice = iceRef.current;
       const pulse = pickupPulseRef.current;
+
       for (let y = 0; y < ROWS; y++) {
         for (let x = 0; x < COLS; x++) {
           if (!walls[y][x] && ice[y][x]) {
             const cx = x * TILE + TILE / 2;
             const cy = y * TILE + TILE / 2;
 
+            const isPower = powerPellets.has(`${x},${y}`);
+            const base = isPower ? 11.5 : 7.5;
+
             const wobble = 1 + 0.08 * Math.sin((x * 13 + y * 7 + pulse * 18));
-            const s = 7.5 * wobble;
+            const s = base * wobble;
 
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(0.15 * Math.sin((x * 9 + y * 5 + pulse * 10)));
-            ctx.fillStyle = "#38BDF8";
-            drawRounded(-s, -s, s * 2, s * 2, 3);
+            ctx.fillStyle = isPower ? "#22C55E" : "#38BDF8"; // power: verde
+            drawRounded(-s, -s, s * 2, s * 2, isPower ? 4 : 3);
             ctx.globalAlpha = 0.55;
             ctx.fillStyle = "#E0F2FE";
             drawRounded(-s + 1.5, -s + 1.5, s * 1.0, s * 1.0, 2);
@@ -330,7 +356,7 @@ export default function RightSideGamePopup() {
         }
       }
 
-      // Truck (camioncito) - cleaner + slight tilt
+      // truck
       const tp = truckPosRef.current;
       const dir = lastDirRef.current;
       const tilt = 0.07 * Math.sin(pickupPulseRef.current * 14);
@@ -339,30 +365,24 @@ export default function RightSideGamePopup() {
       ctx.translate(tp.x, tp.y);
       ctx.rotate(tilt);
 
-      // body shadow
       ctx.globalAlpha = 0.25;
       ctx.fillStyle = "#0F172A";
       drawRounded(-10, 3, 20, 10, 6);
       ctx.globalAlpha = 1;
 
-      // body
       ctx.fillStyle = "#2563EB";
       drawRounded(-10, -4, 20, 12, 6);
 
-      // cabin
       ctx.fillStyle = "#1D4ED8";
       drawRounded(-10, -10, 9, 8, 4);
 
-      // window
       ctx.fillStyle = "#E0F2FE";
       drawRounded(-8.5, -8.5, 5.5, 4.5, 2);
 
-      // wheels
       ctx.fillStyle = "#0B1220";
       drawRounded(-8, 6, 6, 4, 2);
       drawRounded(2, 6, 6, 4, 2);
 
-      // tiny “direction marker”
       ctx.save();
       ctx.globalAlpha = 0.85;
       ctx.fillStyle = "#FBBF24";
@@ -371,54 +391,59 @@ export default function RightSideGamePopup() {
 
       ctx.restore();
 
-      // Penguins (enemies) with bounce
+      // enemies (asustados si power)
       const enemies = enemiesRef.current;
+      const power = powerTimerRef.current > 0;
+
       for (const e of enemies) {
         const bounce = 1 + 0.07 * Math.sin(pickupPulseRef.current * 10 + e.seed * 2.2);
         ctx.save();
         ctx.translate(e.pos.x, e.pos.y);
         ctx.scale(1, bounce);
 
-        // shadow
         ctx.globalAlpha = 0.2;
         ctx.fillStyle = "#0F172A";
         drawRounded(-9, 6, 18, 6, 6);
         ctx.globalAlpha = 1;
 
-        // body
-        ctx.fillStyle = "#111827";
+        // color de asustado (azul) y parpadea al final
+        let body = "#111827";
+        if (power) {
+          const flash = powerTimerRef.current < 2 ? (Math.floor(pickupPulseRef.current * 8) % 2 === 0) : false;
+          body = flash ? "#60A5FA" : "#1D4ED8";
+        }
+        ctx.fillStyle = body;
         drawRounded(-9, -12, 18, 22, 8);
 
-        // belly
         ctx.fillStyle = "#F1F5F9";
         drawRounded(-6.5, -4, 13, 14, 7);
 
-        // eyes
         ctx.fillStyle = "#FFFFFF";
         ctx.beginPath();
         ctx.arc(-4, -7, 2.2, 0, Math.PI * 2);
         ctx.arc(4, -7, 2.2, 0, Math.PI * 2);
         ctx.fill();
+
         ctx.fillStyle = "#0B1220";
         ctx.beginPath();
         ctx.arc(-4, -7, 1.1, 0, Math.PI * 2);
         ctx.arc(4, -7, 1.1, 0, Math.PI * 2);
         ctx.fill();
 
-        // beak
         ctx.fillStyle = "#F59E0B";
         drawRounded(-2, -3, 4, 2.6, 2);
 
         ctx.restore();
       }
 
-      // HUD bar
+      // HUD
       ctx.save();
       ctx.fillStyle = "rgba(15, 23, 42, 0.75)";
       drawRounded(8, 8, cssW - 16, 28, 12);
       ctx.fillStyle = "#FFFFFF";
       ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.fillText(`Puntos: ${score}   |   Meta: ${TARGET_SCORE}`, 18, 27);
+      const powerTxt = powerLeft > 0 ? ` | Modo hielo: ${powerLeft.toFixed(1)}s` : "";
+      ctx.fillText(`Puntos: ${score} | Meta: ${TARGET_SCORE}${powerTxt}`, 18, 27);
       ctx.restore();
 
       if (status === "ready") {
@@ -428,7 +453,7 @@ export default function RightSideGamePopup() {
         ctx.fillStyle = "#FFFFFF";
         ctx.font = "14px system-ui, -apple-system, Segoe UI, Roboto, Arial";
         ctx.fillText("Usa Flechas o WASD para mover el camioncito.", 18, cssH / 2 - 10);
-        ctx.fillText("Recolecta 🧊 (+2) y evita 🐧. Presiona una tecla para iniciar.", 18, cssH / 2 + 14);
+        ctx.fillText("🧊 +2 | 🟩 cubo grande: asusta pingüinos y puedes comértelos.", 18, cssH / 2 + 14);
         ctx.restore();
       }
 
@@ -459,12 +484,22 @@ export default function RightSideGamePopup() {
       }
     };
 
-    const tryPickupIce = () => {
+    const activatePower = () => {
+      powerTimerRef.current = POWER_SECONDS;
+      setPowerLeft(POWER_SECONDS);
+    };
+
+    const tryPickup = () => {
       const ice = iceRef.current;
       const t = worldToTile(truckPosRef.current);
+
       if (ice[t.y]?.[t.x]) {
         ice[t.y][t.x] = false;
-        pickupPulseRef.current = 0; // reset pulse so it “pops”
+        pickupPulseRef.current = 0;
+
+        const isPower = powerPellets.has(mkKey(t));
+        if (isPower) activatePower();
+
         setScore((s) => {
           const ns = s + POINTS_PER_ICE;
           if (ns >= TARGET_SCORE) setWon(true);
@@ -473,7 +508,32 @@ export default function RightSideGamePopup() {
       }
     };
 
-    const checkEnemyCollision = () => {
+    const eatEnemyIfPowered = (): boolean => {
+      if (powerTimerRef.current <= 0) return false;
+      const tp = truckPosRef.current;
+
+      let ate = false;
+      for (const e of enemiesRef.current) {
+        const d = len(sub(e.pos, tp));
+        if (d < (enemyRadius + 7.5) * 0.85) {
+          // ✅ lo comiste: vuelve a “home”
+          e.pos = { ...e.home };
+          e.vel = { x: 0, y: 0 };
+          ate = true;
+        }
+      }
+      if (ate) {
+        setScore((s) => {
+          const ns = s + PENGUIN_EAT_POINTS;
+          if (ns >= TARGET_SCORE) setWon(true);
+          return ns;
+        });
+      }
+      return ate;
+    };
+
+    const checkEnemyCollisionNormal = (): boolean => {
+      if (powerTimerRef.current > 0) return false; // si hay power, no mueres por choque
       const tp = truckPosRef.current;
       for (const e of enemiesRef.current) {
         const d = len(sub(e.pos, tp));
@@ -483,69 +543,63 @@ export default function RightSideGamePopup() {
     };
 
     const updateTruck = (dt: number) => {
-      // dt in seconds
       const tp = truckPosRef.current;
       const vel = truckVelRef.current;
       const desired = desiredDirRef.current;
 
-      // accelerate toward desired direction
       const targetVel = mul(desired, truckMaxSpeed);
-      const ax = (targetVel.x - vel.x) * (truckFriction);
-      const ay = (targetVel.y - vel.y) * (truckFriction);
+      const ax = (targetVel.x - vel.x) * truckFriction;
+      const ay = (targetVel.y - vel.y) * truckFriction;
 
       const newVel = {
         x: vel.x + clamp01(dt * 8) * ax + desired.x * truckAccel * dt * 0.06,
         y: vel.y + clamp01(dt * 8) * ay + desired.y * truckAccel * dt * 0.06,
       };
 
-      // clamp speed
       const sp = len(newVel);
       const capped = sp > truckMaxSpeed ? mul(norm(newVel), truckMaxSpeed) : newVel;
 
-      // integrate with collision (axis-separated for smooth sliding)
-      const next = { x: tp.x, y: tp.y };
+      let nextPos = { x: tp.x, y: tp.y };
+
       const stepX = { x: tp.x + capped.x * dt, y: tp.y };
-      if (canMoveTo(walls, stepX, truckRadius)) next.x = stepX.x;
-      else capped.x = 0;
+      if (canMoveTo(walls, stepX, truckRadius)) nextPos = { ...nextPos, x: stepX.x };
 
-      const stepY = { x: next.x, y: tp.y + capped.y * dt };
-      if (canMoveTo(walls, stepY, truckRadius)) next.y = stepY.y;
-      else capped.y = 0;
+      const stepY = { x: nextPos.x, y: tp.y + capped.y * dt };
+      if (canMoveTo(walls, stepY, truckRadius)) nextPos = { ...nextPos, y: stepY.y };
 
-      truckPosRef.current = next;
+      truckPosRef.current = nextPos;
       truckVelRef.current = capped;
 
       if (Math.abs(desired.x) + Math.abs(desired.y) > 0) lastDirRef.current = desired;
 
-      tryPickupIce();
+      tryPickup();
     };
 
     const updateEnemies = (dt: number) => {
       const truckTile = worldToTile(truckPosRef.current);
+      const power = powerTimerRef.current > 0;
+
       for (const e of enemiesRef.current) {
         const enemyTile = worldToTile(e.pos);
 
-        // pick a tile direction greedily, then move smoothly
-        const dTile = pickBestEnemyDir(walls, enemyTile, truckTile, e.vel);
+        // ✅ chase o flee
+        const mode: "chase" | "flee" = power ? "flee" : "chase";
+        const dTile = pickEnemyDir(walls, enemyTile, truckTile, e.vel, mode);
 
-        const desiredVel = mul(dTile, e.speed);
+        const desiredVel = mul(dTile, power ? e.speed * 0.9 : e.speed);
         const vel = e.vel;
 
-        // smooth follow (easing)
-        const follow = 1 - Math.pow(0.001, dt); // dt-based smoothing
+        const follow = 1 - Math.pow(0.001, dt);
         const newVel = {
           x: lerp(vel.x, desiredVel.x, follow),
           y: lerp(vel.y, desiredVel.y, follow),
         };
 
-        // integrate (simple collision by checking next position)
         const next = add(e.pos, mul(newVel, dt));
-        // smaller radius for enemies
         if (canMoveTo(walls, next, enemyRadius)) {
           e.pos = next;
           e.vel = newVel;
         } else {
-          // if blocked, nudge toward center of current tile
           const c = tileCenterPx(enemyTile);
           e.pos = add(e.pos, mul(sub(c, e.pos), clamp01(dt * 8)));
           e.vel = mul(newVel, 0.2);
@@ -556,24 +610,33 @@ export default function RightSideGamePopup() {
     const loop = (now: number) => {
       const dtMs = now - last;
       last = now;
-
-      // clamp big tab-switch jumps
       const dt = Math.min(0.033, Math.max(0.0, dtMs / 1000));
 
-      // animate pulses
       pickupPulseRef.current += dt;
+
+      // power timer
+      if (powerTimerRef.current > 0) {
+        powerTimerRef.current = Math.max(0, powerTimerRef.current - dt);
+        setPowerLeft(powerTimerRef.current);
+      } else if (powerLeft !== 0) {
+        setPowerLeft(0);
+      }
 
       if (status === "playing" && !won) {
         updateTruck(dt);
 
-        if (checkEnemyCollision()) {
+        // si hay power, puedes comer pingüinos
+        eatEnemyIfPowered();
+
+        // si no hay power y chocas, mueres
+        if (checkEnemyCollisionNormal()) {
           setStatus("gameover");
         } else {
           updateEnemies(dt);
 
-          if (checkEnemyCollision()) {
-            setStatus("gameover");
-          }
+          eatEnemyIfPowered();
+
+          if (checkEnemyCollisionNormal()) setStatus("gameover");
         }
       }
 
@@ -583,7 +646,7 @@ export default function RightSideGamePopup() {
 
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [open, score, status, walls, won, resetGame]);
+  }, [open, powerLeft, score, status, walls, won, resetGame, powerPellets]);
 
   if (!open) {
     return (
@@ -616,7 +679,7 @@ export default function RightSideGamePopup() {
         top: 96,
         right: 16,
         zIndex: 9999,
-        width: 400,
+        width: 420,
         maxWidth: "calc(100vw - 32px)",
         borderRadius: 18,
         border: "1px solid rgba(15,23,42,0.14)",
@@ -697,13 +760,16 @@ export default function RightSideGamePopup() {
               <b>Controles:</b> Flechas o WASD
             </div>
             <div>
-              <b>Puntos:</b> 🧊 +{POINTS_PER_ICE} | <b>Meta:</b> {TARGET_SCORE}
+              <b>🧊</b> +{POINTS_PER_ICE} | <b>🟩 cubo grande</b>: puedes comer 🐧 (+{PENGUIN_EAT_POINTS})
             </div>
           </div>
 
           <div style={{ textAlign: "right", fontSize: 12 }}>
             <div style={{ fontWeight: 900 }}>Puntos: {score}</div>
-            <div style={{ opacity: 0.75 }}>{won ? "🎉 Descuento listo" : `Faltan ${Math.max(0, TARGET_SCORE - score)} pts`}</div>
+            <div style={{ opacity: 0.75 }}>
+              {won ? "🎉 Descuento listo" : `Faltan ${Math.max(0, TARGET_SCORE - score)} pts`}
+              {powerLeft > 0 ? ` | ${powerLeft.toFixed(1)}s` : ""}
+            </div>
           </div>
         </div>
 
