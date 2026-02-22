@@ -410,18 +410,24 @@ export default function RightSideGamePopup() {
 
       // Update
       if (status === "playing" && !won) {
-        truckStepTimer += dt;
-        while (truckStepTimer >= truckStepEvery) {
-          truckStepTimer -= truckStepEvery;
-          stepTruck();
-          if (checkCollision()) {
-            setStatus("gameover");
-            break;
-          }
-        }
-        if (status !== "gameover") stepEnemies(dt);
-      }
+  let dead = false;
 
+  truckStepTimer += dt;
+  while (truckStepTimer >= truckStepEvery) {
+    truckStepTimer -= truckStepEvery;
+    stepTruck();
+
+    if (checkCollision()) {
+      setStatus("gameover");
+      dead = true;
+      break;
+    }
+  }
+
+  if (!dead) {
+    stepEnemies(dt);
+  }
+}
       // Draw
       draw();
 
