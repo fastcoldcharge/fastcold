@@ -16,14 +16,8 @@ export default function Home() {
   return (
     <>
       <RightSideGamePopup />
-      {/* tu contenido normal */}
-      <main>...</main>
-    </>
-  );
-}
-
-export default function Home() {
-  return (
+      
+      
     <main className="relative min-h-screen bg-white">
       <Header />
       <Hero />
