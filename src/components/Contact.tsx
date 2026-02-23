@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Phone, Mail, MapPin, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
 
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxRmZM0cC3bIQyjRj0jP8S1-kn2d7ldTdfrZuSAbsnkIaYxMBDrJ5Q4W5LKNK9DIv6VhA/exec";
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbwi2RhwXSvAsPwvZFWybmGxOv5o8ftSJU0U-8cB-OIrxcx4eHCZGNXzPZyqJRJcPcBLBw/exec";
 
 export default function Contact() {
   const [loading, setLoading] = useState(false);
