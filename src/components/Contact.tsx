@@ -1,12 +1,51 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Phone, Mail, MapPin, ArrowRight } from "lucide-react";
+import { Phone, Mail, MapPin, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
+
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxRmZM0cC3bIQyjRj0jP8S1-kn2d7ldTdfrZuSAbsnkIaYxMBDrJ5Q4W5LKNK9DIv6VhA/exec";
 
 export default function Contact() {
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    alert("Mensaje enviado con éxito. Nos pondremos en contacto pronto.");
+    setLoading(true);
+    setError("");
+    setSuccess(false);
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    const data = {
+      nombre: formData.get("nombre") as string,
+      empresa: formData.get("empresa") as string,
+      email: formData.get("email") as string,
+      telefono: formData.get("telefono") as string,
+      servicio: formData.get("servicio") as string,
+      mensaje: formData.get("mensaje") as string,
+      fecha: new Date().toLocaleString("es-PE", { timeZone: "America/Lima" }),
+    };
+
+    try {
+      await fetch(GOOGLE_SHEET_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      setSuccess(true);
+      form.reset();
+      setTimeout(() => setSuccess(false), 5000);
+    } catch {
+      setError("Error al enviar. Por favor intenta de nuevo o contáctanos por WhatsApp.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -78,6 +117,7 @@ export default function Contact() {
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-primary tracking-wide uppercase">Nombre Completo</label>
                   <input
+                    name="nombre"
                     type="text"
                     required
                     className="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-accent focus:ring-2 focus:ring-accent/15 outline-none transition-all bg-white"
@@ -87,6 +127,7 @@ export default function Contact() {
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-primary tracking-wide uppercase">Empresa</label>
                   <input
+                    name="empresa"
                     type="text"
                     className="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-accent focus:ring-2 focus:ring-accent/15 outline-none transition-all bg-white"
                     placeholder="Nombre de tu empresa"
@@ -98,6 +139,7 @@ export default function Contact() {
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-primary tracking-wide uppercase">Correo Electrónico</label>
                   <input
+                    name="email"
                     type="email"
                     required
                     className="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-accent focus:ring-2 focus:ring-accent/15 outline-none transition-all bg-white"
@@ -107,6 +149,7 @@ export default function Contact() {
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-primary tracking-wide uppercase">Teléfono</label>
                   <input
+                    name="telefono"
                     type="tel"
                     className="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-accent focus:ring-2 focus:ring-accent/15 outline-none transition-all bg-white"
                     placeholder="+51 000 000 000"
@@ -116,7 +159,7 @@ export default function Contact() {
 
               <div className="space-y-2">
                 <label className="text-xs font-bold text-primary tracking-wide uppercase">Servicio de Interés</label>
-                <select className="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-accent focus:ring-2 focus:ring-accent/15 outline-none transition-all appearance-none bg-white">
+                <select name="servicio" className="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-accent focus:ring-2 focus:ring-accent/15 outline-none transition-all appearance-none bg-white">
                   <option>Transporte Refrigerado</option>
                   <option>Transporte Congelado</option>
                   <option>Distribución Local</option>
@@ -127,6 +170,7 @@ export default function Contact() {
               <div className="space-y-2">
                 <label className="text-xs font-bold text-primary tracking-wide uppercase">Mensaje / Requerimiento</label>
                 <textarea
+                  name="mensaje"
                   rows={4}
                   className="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-accent focus:ring-2 focus:ring-accent/15 outline-none transition-all bg-white resize-none"
                   placeholder="Cuéntanos más sobre lo que necesitas..."
@@ -135,10 +179,27 @@ export default function Contact() {
 
               <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-primary to-secondary hover:from-secondary hover:to-primary text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 group shadow-lg shadow-primary/15 hover:shadow-xl"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-primary to-secondary hover:from-secondary hover:to-primary text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 group shadow-lg shadow-primary/15 hover:shadow-xl disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Enviar Solicitud <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                {loading ? (
+                  <><Loader2 size={18} className="animate-spin" /> Enviando...</>
+                ) : (
+                  <>Enviar Solicitud <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" /></>
+                )}
               </button>
+
+              {success && (
+                <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm font-medium">
+                  <CheckCircle2 size={18} /> ¡Mensaje enviado con éxito! Nos pondremos en contacto pronto.
+                </div>
+              )}
+
+              {error && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm font-medium">
+                  {error}
+                </div>
+              )}
             </form>
           </motion.div>
         </div>
