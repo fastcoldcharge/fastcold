@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import { Phone, Mail, Menu, X, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import { withBasePath } from "@/lib/paths";
 
 const TopBar = () => (
   <div className="bg-gradient-animated text-white py-2.5 px-4 text-sm hidden md:block">
@@ -52,15 +54,19 @@ export default function Header() {
       <TopBar />
       <header
         className={`fixed w-full z-50 transition-all duration-500 ${isScrolled
-            ? "bg-white/90 backdrop-blur-xl shadow-lg shadow-dark/5 py-2 top-0"
-            : "bg-transparent py-4 md:top-10"
+          ? "bg-white/90 backdrop-blur-xl shadow-lg shadow-dark/5 py-2 top-0"
+          : "bg-transparent py-4 md:top-10"
           }`}
       >
         <div className="container mx-auto px-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">
-            <div className={`p-2.5 rounded-xl transition-all duration-300 ${isScrolled ? 'bg-primary' : 'bg-white/10 backdrop-blur-sm border border-white/20'}`}>
-              <span className="text-white font-black text-xl tracking-tighter">FAST<span className="text-accent">COLD</span></span>
-            </div>
+            <Image
+              src={withBasePath("/images/fastvicon.png")}
+              alt="Fast Cold Logo"
+              width={140}
+              height={50}
+              className={`h-10 w-auto transition-all duration-300 ${isScrolled ? '' : 'drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]'}`}
+            />
           </Link>
 
           {/* Desktop Menu */}
