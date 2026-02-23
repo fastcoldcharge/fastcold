@@ -6,19 +6,20 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 
 const TopBar = () => (
-  <div className="bg-primary text-white py-2 px-4 text-sm hidden md:block">
+  <div className="bg-gradient-animated text-white py-2.5 px-4 text-sm hidden md:block">
     <div className="container mx-auto flex justify-between items-center">
       <div className="flex items-center gap-4">
-        <span className="flex items-center gap-1">
-          <span className="text-accent">❄️</span> Especialistas en Cadena de Frío en Lima y Provincias
+        <span className="flex items-center gap-2">
+          <span className="text-accent">❄️</span>
+          <span className="text-slate-300 font-medium">Especialistas en Cadena de Frío en Lima y Provincias</span>
         </span>
       </div>
       <div className="flex items-center gap-6">
-        <a href="tel:+51952310802" className="flex items-center gap-1 hover:text-accent transition-colors">
-          <Phone size={14} /> +51 952 310 802
+        <a href="tel:+51952310802" className="flex items-center gap-1.5 hover:text-accent transition-colors text-slate-300">
+          <Phone size={13} /> +51 952 310 802
         </a>
-        <a href="mailto:fastcoldcharge@gmail.com" className="flex items-center gap-1 hover:text-accent transition-colors">
-          <Mail size={14} /> fastcoldcharge@gmail.com
+        <a href="mailto:fastcoldcharge@gmail.com" className="flex items-center gap-1.5 hover:text-accent transition-colors text-slate-300">
+          <Mail size={13} /> fastcoldcharge@gmail.com
         </a>
       </div>
     </div>
@@ -50,14 +51,15 @@ export default function Header() {
     <>
       <TopBar />
       <header
-        className={`fixed w-full z-50 transition-all duration-300 ${
-          isScrolled ? "bg-white shadow-lg py-2 top-0" : "bg-transparent py-4 md:top-10"
-        }`}
+        className={`fixed w-full z-50 transition-all duration-500 ${isScrolled
+            ? "bg-white/90 backdrop-blur-xl shadow-lg shadow-dark/5 py-2 top-0"
+            : "bg-transparent py-4 md:top-10"
+          }`}
       >
         <div className="container mx-auto px-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">
-            <div className="bg-primary p-2 rounded-lg">
-              <span className="text-white font-bold text-xl tracking-tighter">FAST<span className="text-accent">COLD</span></span>
+            <div className={`p-2.5 rounded-xl transition-all duration-300 ${isScrolled ? 'bg-primary' : 'bg-white/10 backdrop-blur-sm border border-white/20'}`}>
+              <span className="text-white font-black text-xl tracking-tighter">FAST<span className="text-accent">COLD</span></span>
             </div>
           </Link>
 
@@ -67,18 +69,17 @@ export default function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`font-medium transition-colors hover:text-secondary ${
-                  isScrolled ? "text-primary" : "text-primary md:text-white"
-                }`}
+                className={`font-medium transition-all duration-300 hover:text-accent relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[2px] after:bg-accent after:transition-all after:duration-300 hover:after:w-full ${isScrolled ? "text-primary" : "text-primary md:text-white/90"
+                  }`}
               >
                 {item.name}
               </Link>
             ))}
             <Link
               href="#contacto"
-              className="bg-secondary text-white px-6 py-2 rounded-full font-bold hover:bg-primary transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+              className="bg-gradient-to-r from-secondary to-accent text-white px-6 py-2.5 rounded-full font-bold hover:shadow-lg hover:shadow-accent/25 transition-all flex items-center gap-2 hover:scale-105"
             >
-              Solicitar Cotización <ChevronRight size={18} />
+              Solicitar Cotización <ChevronRight size={16} />
             </Link>
           </nav>
 
@@ -98,7 +99,7 @@ export default function Header() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="lg:hidden bg-white border-t"
+              className="lg:hidden bg-white/95 backdrop-blur-xl border-t border-slate-100"
             >
               <div className="container mx-auto px-4 py-6 flex flex-col gap-4">
                 {menuItems.map((item) => (
@@ -106,7 +107,7 @@ export default function Header() {
                     key={item.name}
                     href={item.href}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="text-primary font-medium text-lg border-b pb-2"
+                    className="text-primary font-medium text-lg border-b border-slate-100 pb-3 hover:text-secondary transition-colors"
                   >
                     {item.name}
                   </Link>
@@ -114,7 +115,7 @@ export default function Header() {
                 <Link
                   href="#contacto"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="bg-secondary text-white px-6 py-3 rounded-xl font-bold text-center mt-2"
+                  className="bg-gradient-to-r from-secondary to-accent text-white px-6 py-3.5 rounded-xl font-bold text-center mt-2 shadow-lg"
                 >
                   Solicitar Cotización
                 </Link>
