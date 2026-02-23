@@ -7,7 +7,7 @@ import { withBasePath } from "@/lib/paths";
 const fleetImages = [
   withBasePath("/images/carga-logistica.jpg"),
   withBasePath("/images/camion-almacen.jpg"),
-  withBasePath("/images/fast-cold-warehouse.jpg"),
+  withBasePath("/images/carga-logistica.jpg"),
 ];
 
 export default function Fleet() {

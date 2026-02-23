@@ -19,7 +19,7 @@ export default function Hero() {
       <motion.div
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: `url("${withBasePath('/images/camion-carretera.jpg')}")`,
+          backgroundImage: `url("${withBasePath('/images/camion-almacen.jpg')}")`,
           filter: 'brightness(0.4)',
           y
         }}
